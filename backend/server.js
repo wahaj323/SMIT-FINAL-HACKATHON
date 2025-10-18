@@ -1,23 +1,18 @@
-// ✅ Imports (ALL imports at the top)
+// ✅ Imports
 import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import fileUpload from "express-fileupload";
 import path from "path";
-
 import connectDB from "./config/db.js";
-
-// ✅ Gemini setup
 import ai, { modelName } from "./config/gemini.js";
 
-// ✅ Routes
 import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import vitalsRoutes from "./routes/vitalsRoutes.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
 
-// ✅ Config & Initialization
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,33 +31,28 @@ app.use(
   })
 );
 
-// ✅ File Upload Middleware
+// ✅ File upload middleware
 app.use(
   fileUpload({
     useTempFiles: true,
     tempFileDir: "/tmp/",
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 10 * 1024 * 1024 },
     abortOnLimit: true,
-    createParentPath: true,
   })
 );
 
-// ✅ API Routes
+// ✅ API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/vitals", vitalsRoutes);
 app.use("/api/analysis", analysisRoutes);
 
-// ✅ Health Check Route
+// ✅ Health route
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    message: "HealthMate API is running",
-    timestamp: new Date().toISOString(),
-  });
+  res.json({ status: "OK", message: "HealthMate API running" });
 });
 
-// ✅ Gemini Test Route
+// ✅ Gemini test route
 app.get("/api/test-gemini", async (req, res) => {
   try {
     const result = await ai.models.generateContent({
@@ -76,29 +66,25 @@ app.get("/api/test-gemini", async (req, res) => {
   }
 });
 
-// ✅ Serve React Build (for Production)
+// ✅ Serve React build (for Production)
 if (process.env.NODE_ENV === "production") {
   const distPath = path.join(__dirname, "../frontend/dist");
   app.use(express.static(distPath));
 
-  // ✅ Safe wildcard route for React Router (Express v5 fix)
-  app.get("/*", (req, res) => {
+  // ✅ FIX: use app.use instead of app.get for wildcard route
+  app.use((req, res) => {
     res.sendFile(path.join(distPath, "index.html"));
   });
 } else {
-  // ✅ Local Dev Fallback
   app.get("/", (req, res) => {
     res.send("HealthMate API (Local Dev Mode)");
   });
 }
 
-// ✅ Global Error Handler
+// ✅ Error handler
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
-  res.status(500).json({
-    message: "Internal Server Error",
-    error: err.message,
-  });
+  res.status(500).json({ message: "Internal Server Error" });
 });
 
 // ✅ Start Server
