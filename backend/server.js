@@ -23,7 +23,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const __dirname = path.resolve();
 
-// ✅ Connect to DB
+// ✅ Connect to MongoDB
 connectDB();
 
 // ✅ Middlewares
@@ -36,12 +36,12 @@ app.use(
   })
 );
 
-// ✅ File Uploads
+// ✅ File Upload Middleware
 app.use(
   fileUpload({
     useTempFiles: true,
     tempFileDir: "/tmp/",
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     abortOnLimit: true,
     createParentPath: true,
   })
@@ -76,16 +76,23 @@ app.get("/api/test-gemini", async (req, res) => {
   }
 });
 
-// ✅ Serve React build (for Production)
+// ✅ Serve React Build (for Production)
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  const distPath = path.join(__dirname, "../frontend/dist");
+  app.use(express.static(distPath));
 
-  app.get("*", (req, res) =>
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"))
-  );
+  // ✅ Safe wildcard route for React Router (Express v5 fix)
+  app.get("/*", (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+} else {
+  // ✅ Local Dev Fallback
+  app.get("/", (req, res) => {
+    res.send("HealthMate API (Local Dev Mode)");
+  });
 }
 
-// ✅ Error Handler
+// ✅ Global Error Handler
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
   res.status(500).json({
@@ -97,5 +104,7 @@ app.use((err, req, res, next) => {
 // ✅ Start Server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🏥 HealthMate API ready for ${process.env.NODE_ENV || "development"}`);
+  console.log(
+    `🏥 HealthMate API ready for ${process.env.NODE_ENV || "development"}`
+  );
 });
