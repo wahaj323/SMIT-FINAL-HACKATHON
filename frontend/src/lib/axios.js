@@ -1,30 +1,33 @@
-// frontend/src/lib/axios.js
 import axios from "axios";
 
+// ✅ Automatically detect environment
+const baseURL =
+  import.meta.env.MODE === "development"
+    ? "http://localhost:5000/api" // Local backend
+    : "/api"; // Production (served from same domain)
+
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor for debugging
+// ✅ Request Interceptor (optional logging)
 axiosInstance.interceptors.request.use(
   (config) => {
+    // console.log("🔹 Request:", config.method?.toUpperCase(), config.url);
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// ✅ Response Interceptor (auto redirect on 401)
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Redirect to login on unauthorized
       window.location.href = "/login";
     }
     return Promise.reject(error);

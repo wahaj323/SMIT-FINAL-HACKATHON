@@ -25,7 +25,8 @@
     "express-fileupload": "^1.5.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "smit-final-hackathon": "file:.."
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

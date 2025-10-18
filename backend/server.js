@@ -1,12 +1,14 @@
-// ✅ Imports (ALL imports must be at the top)
+// ✅ Imports (ALL imports at the top)
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import fileUpload from "express-fileupload";
+import path from "path";
+
 import connectDB from "./config/db.js";
 
-// ✅ Gemini import (updated to match your gemini.js)
+// ✅ Gemini setup
 import ai, { modelName } from "./config/gemini.js";
 
 // ✅ Routes
@@ -15,78 +17,85 @@ import reportRoutes from "./routes/reportRoutes.js";
 import vitalsRoutes from "./routes/vitalsRoutes.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
 
+// ✅ Config & Initialization
 dotenv.config();
+const app = express();
+const PORT = process.env.PORT || 5000;
+const __dirname = path.resolve();
+
+// ✅ Connect to DB
 connectDB();
 
-const app = express();
-
-// ✅ CORS setup (for local development only)
+// ✅ Middlewares
+app.use(express.json());
+app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
   })
 );
 
-// ✅ Basic middlewares
-app.use(express.json());
-app.use(cookieParser());
-
-// ✅ File upload middleware
+// ✅ File Uploads
 app.use(
   fileUpload({
     useTempFiles: true,
     tempFileDir: "/tmp/",
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 },
     abortOnLimit: true,
     createParentPath: true,
   })
 );
 
-// ✅ API routes
+// ✅ API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/vitals", vitalsRoutes);
 app.use("/api/analysis", analysisRoutes);
 
-// ✅ Health check route
+// ✅ Health Check Route
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
-    message: "HealthMate API running locally",
+    message: "HealthMate API is running",
     timestamp: new Date().toISOString(),
   });
 });
 
-// ✅ Gemini test route (updated)
+// ✅ Gemini Test Route
 app.get("/api/test-gemini", async (req, res) => {
   try {
     const result = await ai.models.generateContent({
       model: modelName,
-      contents: "Say hello from Gemini 2.5 Flash 🚀",
+      contents: "Hello from Gemini 2.5 Flash 🚀",
     });
     res.send(result.text);
   } catch (error) {
-    console.error("Gemini test failed:", error);
-    res.status(500).send(error.message);
+    console.error("Gemini API Error:", error);
+    res.status(500).json({ message: error.message });
   }
 });
 
-// ✅ Default route
-app.get("/", (req, res) => res.send("HealthMate API (Local Dev Mode)"));
+// ✅ Serve React build (for Production)
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-// ✅ Error handler
+  app.get("*", (req, res) =>
+    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"))
+  );
+}
+
+// ✅ Error Handler
 app.use((err, req, res, next) => {
-  console.error("Server Error:", err.stack);
+  console.error("Server Error:", err);
   res.status(500).json({
-    message: "Something went wrong!",
+    message: "Internal Server Error",
     error: err.message,
   });
 });
 
-// ✅ Start server
-const PORT = process.env.PORT || 5000;
+// ✅ Start Server
 app.listen(PORT, () => {
-  console.log(`✅ Server running locally on port ${PORT}`);
-  console.log(`🏥 HealthMate API ready for development`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🏥 HealthMate API ready for ${process.env.NODE_ENV || "development"}`);
 });
